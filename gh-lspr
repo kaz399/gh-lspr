@@ -3,15 +3,17 @@ set -e
 
 limit=10
 
+state='open'
+
 filtered_prs_query=''
 
-requested_prs_query='is:open is:pr review-requested:@me'
+requested_prs_query=''
 
-created_prs_query='is:open is:pr author:@me'
+created_prs_query=''
 
-mentioned_prs_query='is:open is:pr mentions:@me'
+mentioned_prs_query=''
 
-reviewed_prs_query='is:open is:pr reviewed-by:@me'
+reviewed_prs_query=''
 
 org=''
 
@@ -28,16 +30,49 @@ FLAGS
   -c, --created             Filter by created by myself 
   -m, --mentioned           Filter by mentioned to me
   -o, --org                 Filter by organization name or user name
+  -s, --state               Filter by pull request state: open, closed, merged, all (default open)
   -l, --limit               Maximum number of items to fetch (default 10)
   -h, --help                Show help
 
 EXAMPLES
   $ gh lspr
+  $ gh lspr --state closed
+  $ gh lspr --state merged
+  $ gh lspr --state all -c
   $ gh lspr -l 20
   $ gh lspr -r
   $ gh lspr -c
   $ gh lspr -m -l 15
 EOF
+}
+
+build_pr_query() {
+  local filter="$1"
+
+  if [ "$state" = 'all' ] ; then
+    printf 'is:pr %s' "$filter"
+    return 0
+  fi
+
+  printf 'is:%s is:pr %s' "$state" "$filter"
+}
+
+set_pr_queries() {
+  requested_prs_query="$(build_pr_query 'review-requested:@me')"
+  created_prs_query="$(build_pr_query 'author:@me')"
+  mentioned_prs_query="$(build_pr_query 'mentions:@me')"
+  reviewed_prs_query="$(build_pr_query 'reviewed-by:@me')"
+}
+
+validate_state() {
+  case "$1" in
+    open|closed|merged|all)
+      ;;
+    *)
+      echo "error: invalid state '$1'; use open, closed, merged, or all" >&2
+      exit 1
+      ;;
+  esac
 }
 
 show_filtered_pr_list() {
@@ -193,16 +228,16 @@ handle_org_flag() {
 while [ $# -gt 0 ]; do
   case "$1" in
   -rr|--review-requested)
-    filtered_prs_query="$requested_prs_query"
+    filtered_prs_query='requested'
     ;;
   -c|--created)
-    filtered_prs_query="$created_prs_query"
+    filtered_prs_query='created'
     ;;
   -m|--mentioned)
-    filtered_prs_query="$mentioned_prs_query"
+    filtered_prs_query='mentioned'
     ;;
-  -r)
-    filtered_prs_query="$reviewed_prs_query"
+  -r|--reviewed)
+    filtered_prs_query='reviewed'
     ;;
   -h|--help)
     show_help
@@ -210,13 +245,37 @@ while [ $# -gt 0 ]; do
     ;;
   -l|--limit)
     limit=$2
+    shift
     ;;
   -o|--org)
     org=$2
+    shift
+    ;;
+  -s|--state)
+    validate_state "$2"
+    state=$2
+    shift
     ;;
   esac
   shift
 done
+
+set_pr_queries
+
+case "$filtered_prs_query" in
+  requested)
+    filtered_prs_query="$requested_prs_query"
+    ;;
+  reviewed)
+    filtered_prs_query="$reviewed_prs_query"
+    ;;
+  created)
+    filtered_prs_query="$created_prs_query"
+    ;;
+  mentioned)
+    filtered_prs_query="$mentioned_prs_query"
+    ;;
+esac
 
 handle_filter_flag
 handle_org_flag
