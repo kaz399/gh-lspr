@@ -13,6 +13,14 @@ $ gh extension install kentaro-m/gh-lspr
 ## Usage
 - `gh lspr`
   - Show pull request list (filter by review requested, created and mentioned)
+- `gh lspr --state open`
+  - Show only open pull requests
+- `gh lspr --state closed`
+  - Show only closed pull requests
+- `gh lspr --state merged`
+  - Show only merged pull requests
+- `gh lspr --state all`
+  - Show pull requests regardless of state
 - `gh lspr --review-requested` ( `gh lspr -rr` )
   - Show pull request list which filter by review requested to others
 - `gh lspr --reviewed` ( `gh lspr -r` )
@@ -25,6 +33,8 @@ $ gh extension install kentaro-m/gh-lspr
 ### Options
 - `-o`, `--org`
   - Filter by organization name or user name
+- `-s`, `--state`
+  - Filter by pull request state: `open`, `closed`, `merged`, or `all` (default `open`)
 - `-l`, `--limit`
   - Maximum number of items to fetch (default 10)
 - `-h`, `--help`
